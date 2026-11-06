@@ -1,0 +1,62 @@
+name: Modern Kernel Module Build
+
+on:
+  push:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Install Build Dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential libssl-dev bc bison flex libelf-dev git python3 wget curl ccache
+
+      - name: Setup Clang Toolchain & Kernel Source
+        run: |
+          git clone --depth=1 https://android.googlesource.com/platform/prebuilts/clang/host/linux-x86 -b main clang-toolchain
+          git clone --depth=1 https://android.googlesource.com/kernel/common -b android14-6.1 kernel-common
+
+      - name: Configure and Prepare Kernel
+        run: |
+          cd kernel-common
+          CLANG_PATH=$(pwd)/../clang-toolchain/$(ls ../clang-toolchain | grep -E '^clang-' | head -n 1)/bin
+          export PATH=$CLANG_PATH:$PATH
+          
+          export ARCH=arm64
+          export SUBARCH=arm64
+          export CLANG_TRIPLE=aarch64-linux-gnu-
+          export CROSS_COMPILE=aarch64-linux-gnu-
+          export CC=clang
+
+          make O=out gki_defconfig
+          ./scripts/config --file out/.config --disable MODVERSIONS
+          ./scripts/config --file out/.config --disable MODULE_SIG
+          make O=out olddefconfig
+          make O=out modules_prepare
+
+      - name: Compile Out-of-Tree Module
+        run: |
+          cd kernel-common
+          CLANG_PATH=$(pwd)/../clang-toolchain/$(ls ../clang-toolchain | grep -E '^clang-' | head -n 1)/bin
+          export PATH=$CLANG_PATH:$PATH
+          
+          export ARCH=arm64
+          export CC=clang
+          export CLANG_TRIPLE=aarch64-linux-gnu-
+          export CROSS_COMPILE=aarch64-linux-gnu-
+
+          make -C $PWD O=out M=$GITHUB_WORKSPACE modules
+
+      - name: Upload Clean Artifact (.ko)
+        uses: actions/upload-artifact@v4
+        with:
+          name: cheat-module-clean
+          path: |
+            kernel-common/*.ko
+            *.ko
