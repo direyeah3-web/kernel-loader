@@ -76,10 +76,11 @@ jobs:
           
           export ARCH=arm64
           export CC=clang
+          export LD=ld.lld
           export CLANG_TRIPLE=aarch64-linux-gnu-
           export CROSS_COMPILE=aarch64-linux-gnu-
 
-          # Waxaan ku darnay KBUILD_MODPOST_WARN=1 si uu u dhaafo qaladka modpost
+          # Dhismaha anagoo si adag u adeegsaneyna LLD linker si uusan Exec format error u dhicin
           make -C $PWD O=out M=$GITHUB_WORKSPACE KBUILD_MODPOST_WARN=1 modules
 
       - name: Upload Clean Artifact (.ko)
