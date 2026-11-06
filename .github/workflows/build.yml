@@ -19,7 +19,6 @@ jobs:
 
       - name: Create Clean Sample Source Code
         run: |
-          # Abuuridda cheat.c oo ah kood tijaabo ah oo nadiif ah
           cat << 'END' > cheat.c
           #include <linux/module.h>
           #include <linux/kernel.h>
@@ -43,7 +42,6 @@ jobs:
           module_exit(clean_loader_exit);
           END
 
-          # Abuuridda Makefile sax ah oo la jaanqaadaya dhismaha
           cat << 'END' > Makefile
           obj-m += cheat.o
           END
@@ -51,7 +49,8 @@ jobs:
       - name: Setup Clang Toolchain & Kernel Source
         run: |
           git clone --depth=1 https://android.googlesource.com/platform/prebuilts/clang/host/linux-x86 -b main clang-toolchain
-          git clone --depth=1 https://android.googlesource.com/kernel/common -b android14-6.1 kernel-common
+          # Isticmaalka kernel-common oo la jaanqaadaysa nooca Android 16 / GKI eeaga
+          git clone --depth=1 https://android.googlesource.com/kernel/common -b android16-6.12 kernel-common
 
       - name: Configure and Prepare Kernel
         run: |
@@ -68,6 +67,8 @@ jobs:
           make O=out gki_defconfig
           ./scripts/config --file out/.config --disable MODVERSIONS
           ./scripts/config --file out/.config --disable MODULE_SIG
+          # Ku darida LOCALVERSION-ka saxda ah ee taleefankaaga laga helay
+          ./scripts/config --file out/.config --set-str LOCALVERSION "-android16-5-abA165FXXSBDZH6-4k"
           make O=out olddefconfig
           make O=out modules_prepare
 
@@ -82,7 +83,6 @@ jobs:
           export CLANG_TRIPLE=aarch64-linux-gnu-
           export CROSS_COMPILE=aarch64-linux-gnu-
 
-          # Dhismaha module-ka anagoo tixraacayna halka ay cheat.c iyo Makefile joogaan ($GITHUB_WORKSPACE)
           make -C $PWD O=out M=$GITHUB_WORKSPACE modules
 
       - name: Upload Clean Artifact (.ko)
