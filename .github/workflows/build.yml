@@ -15,7 +15,7 @@ jobs:
       - name: Install Build Dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y build-essential libssl-dev bc bison flex libelf-dev git python3 wget curl ccache
+          sudo apt-get install -y build-essential libssl-dev bc bison flex libelf-dev git python3 wget curl ccache gcc-aarch64-linux-gnu binutils-aarch64-linux-gnu
 
       - name: Setup Clang Toolchain & Kernel Source
         run: |
