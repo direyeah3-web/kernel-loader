@@ -17,6 +17,37 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y build-essential libssl-dev bc bison flex libelf-dev git python3 wget curl ccache gcc-aarch64-linux-gnu binutils-aarch64-linux-gnu
 
+      - name: Create Clean Sample Source Code
+        run: |
+          # Abuuridda cheat.c oo ah kood tijaabo ah oo nadiif ah
+          cat << 'END' > cheat.c
+          #include <linux/module.h>
+          #include <linux/kernel.h>
+          #include <linux/init.h>
+
+          MODULE_LICENSE("GPL");
+          MODULE_AUTHOR("Dire");
+          MODULE_DESCRIPTION("Clean Kernel Loader");
+          MODULE_VERSION("1.0");
+
+          static int __init clean_loader_init(void) {
+              printk(KERN_INFO "Clean Kernel Loader Loaded Successfully!\n");
+              return 0;
+          }
+
+          static void __exit clean_loader_exit(void) {
+              printk(KERN_INFO "Clean Kernel Loader Unloaded Successfully!\n");
+          }
+
+          module_init(clean_loader_init);
+          module_exit(clean_loader_exit);
+          END
+
+          # Abuuridda Makefile sax ah oo la jaanqaadaya dhismaha
+          cat << 'END' > Makefile
+          obj-m += cheat.o
+          END
+
       - name: Setup Clang Toolchain & Kernel Source
         run: |
           git clone --depth=1 https://android.googlesource.com/platform/prebuilts/clang/host/linux-x86 -b main clang-toolchain
@@ -51,6 +82,7 @@ jobs:
           export CLANG_TRIPLE=aarch64-linux-gnu-
           export CROSS_COMPILE=aarch64-linux-gnu-
 
+          # Dhismaha module-ka anagoo tixraacayna halka ay cheat.c iyo Makefile joogaan ($GITHUB_WORKSPACE)
           make -C $PWD O=out M=$GITHUB_WORKSPACE modules
 
       - name: Upload Clean Artifact (.ko)
