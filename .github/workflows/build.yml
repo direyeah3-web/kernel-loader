@@ -1,4 +1,4 @@
-name: Modern Kernel Module Build
+name: Build KernelSU Module ZIP
 
 on:
   push:
@@ -12,81 +12,47 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Install Build Dependencies
+      - name: Create KernelSU Module Structure
         run: |
-          sudo apt-get update
-          sudo apt-get install -y build-essential libssl-dev bc bison flex libelf-dev git python3 wget curl ccache gcc-aarch64-linux-gnu binutils-aarch64-linux-gnu
+          mkdir -p ksu_module/META-INF/com/google/android
+          mkdir -p ksu_module/system/bin
 
-      - name: Create Clean Sample Source Code
-        run: |
-          cat << 'END' > cheat.c
-          #include <linux/module.h>
-          #include <linux/kernel.h>
-          #include <linux/init.h>
-
-          MODULE_LICENSE("GPL");
-          MODULE_AUTHOR("Dire");
-          MODULE_DESCRIPTION("Clean Kernel Loader");
-          MODULE_VERSION("1.0");
-
-          static int __init clean_loader_init(void) {
-              return 0;
-          }
-
-          static void __exit clean_loader_exit(void) {
-          }
-
-          module_init(clean_loader_init);
-          module_exit(clean_loader_exit);
+          # 1. module.prop (Macluumaadka Module-ka)
+          cat << 'END' > ksu_module/module.prop
+          id=dire-ksu-loader
+          name=Dire KernelSU Loader
+          version=v1.0
+          versionCode=1
+          author=Dire
+          description=Custom KernelSU Module for Samsung Galaxy A16
           END
 
-          cat << 'END' > Makefile
-          obj-m += cheat.o
+          # 2. customize.sh (Halka uu ka fuliyo amarrada marka la flash-gareeyo)
+          cat << 'END' > ksu_module/customize.sh
+          ui_print("********************************")
+          ui_print("   Dire KernelSU Module Install ")
+          ui_print("********************************")
+          set_perm_recursive $MODPATH/system/bin 0 0 0755 0755
+          ui_print("Installation finished successfully!")
           END
 
-      - name: Setup Clang Toolchain & Kernel Source
-        run: |
-          git clone --depth=1 https://android.googlesource.com/platform/prebuilts/clang/host/linux-x86 -b main clang-toolchain
-          git clone --depth=1 https://android.googlesource.com/kernel/common -b android16-6.12 kernel-common
+          # 3. updater-script (Zipped flash requirement)
+          echo "#" > ksu_module/META-INF/com/google/android/updater-script
 
-      - name: Configure and Prepare Kernel
-        run: |
-          cd kernel-common
-          CLANG_PATH=$(pwd)/../clang-toolchain/$(ls ../clang-toolchain | grep -E '^clang-' | head -n 1)/bin
-          export PATH=$CLANG_PATH:$PATH
-          
-          export ARCH=arm64
-          export SUBARCH=arm64
-          export CLANG_TRIPLE=aarch64-linux-gnu-
-          export CROSS_COMPILE=aarch64-linux-gnu-
-          export CC=clang
+          # 4. update-binary (Placeholder oo u oggolaanaya inuu si sax ah u flash-garoobo)
+          cat << 'END' > ksu_module/META-INF/com/google/android/update-binary
+          #!/sbin/sh
+          exit 0
+          END
+          chmod +x ksu_module/META-INF/com/google/android/update-binary
 
-          make O=out gki_defconfig
-          ./scripts/config --file out/.config --disable MODVERSIONS
-          ./scripts/config --file out/.config --disable MODULE_SIG
-          ./scripts/config --file out/.config --set-str LOCALVERSION "-android16-5-abA165FXXSBDZH6-4k"
-          make O=out olddefconfig
-          make O=out modules_prepare
+          # Xirxiro oo ka dhig ZIP
+          cd ksu_module
+          zip -r9 ../dire-kernelsu-module.zip *
+          cd ..
 
-      - name: Compile Out-of-Tree Module
-        run: |
-          cd kernel-common
-          CLANG_PATH=$(pwd)/../clang-toolchain/$(ls ../clang-toolchain | grep -E '^clang-' | head -n 1)/bin
-          export PATH=$CLANG_PATH:$PATH
-          
-          export ARCH=arm64
-          export CC=clang
-          export LD=ld.lld
-          export CLANG_TRIPLE=aarch64-linux-gnu-
-          export CROSS_COMPILE=aarch64-linux-gnu-
-
-          # Dhismaha anagoo si adag u adeegsaneyna LLD linker si uusan Exec format error u dhicin
-          make -C $PWD O=out M=$GITHUB_WORKSPACE KBUILD_MODPOST_WARN=1 modules
-
-      - name: Upload Clean Artifact (.ko)
+      - name: Upload KernelSU Module ZIP
         uses: actions/upload-artifact@v4
         with:
-          name: cheat-module-clean
-          path: |
-            kernel-common/*.ko
-            *.ko
+          name: kernelsu-module-zip
+          path: dire-kernelsu-module.zip
