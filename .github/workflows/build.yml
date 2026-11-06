@@ -30,12 +30,10 @@ jobs:
           MODULE_VERSION("1.0");
 
           static int __init clean_loader_init(void) {
-              printk(KERN_INFO "Clean Kernel Loader Loaded Successfully!\n");
               return 0;
           }
 
           static void __exit clean_loader_exit(void) {
-              printk(KERN_INFO "Clean Kernel Loader Unloaded Successfully!\n");
           }
 
           module_init(clean_loader_init);
@@ -49,7 +47,6 @@ jobs:
       - name: Setup Clang Toolchain & Kernel Source
         run: |
           git clone --depth=1 https://android.googlesource.com/platform/prebuilts/clang/host/linux-x86 -b main clang-toolchain
-          # Isticmaalka kernel-common oo la jaanqaadaysa nooca Android 16 / GKI eeaga
           git clone --depth=1 https://android.googlesource.com/kernel/common -b android16-6.12 kernel-common
 
       - name: Configure and Prepare Kernel
@@ -67,7 +64,6 @@ jobs:
           make O=out gki_defconfig
           ./scripts/config --file out/.config --disable MODVERSIONS
           ./scripts/config --file out/.config --disable MODULE_SIG
-          # Ku darida LOCALVERSION-ka saxda ah ee taleefankaaga laga helay
           ./scripts/config --file out/.config --set-str LOCALVERSION "-android16-5-abA165FXXSBDZH6-4k"
           make O=out olddefconfig
           make O=out modules_prepare
@@ -83,7 +79,8 @@ jobs:
           export CLANG_TRIPLE=aarch64-linux-gnu-
           export CROSS_COMPILE=aarch64-linux-gnu-
 
-          make -C $PWD O=out M=$GITHUB_WORKSPACE modules
+          # Waxaan ku darnay KBUILD_MODPOST_WARN=1 si uu u dhaafo qaladka modpost
+          make -C $PWD O=out M=$GITHUB_WORKSPACE KBUILD_MODPOST_WARN=1 modules
 
       - name: Upload Clean Artifact (.ko)
         uses: actions/upload-artifact@v4
